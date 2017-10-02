@@ -2,59 +2,30 @@ require_relative 'user'
 require_relative 'card'
 
 class Game
-  attr_reader :player, :dealer, :deck
+  attr_reader :player, :dealer, :deck, :bank
+  attr_writer :bank
 
-  def initialize
-    @player = User.new('Player', :player)
+  def initialize(name)
+    @player = User.new(name, :player)
     @dealer = User.new('Dealer', :dealer)
     @deck = build_deck
+    @bank = 0
   end
 
   def run
-    # Создать игрока
-    # Спросить имя
-    # Создать диллера
-    # puts 'What is your name?'
-    # name = gets.chomp
+    launching player
+    launching dealer
 
-    # Выдать 2 случайные карты пользователю
-    # Пользователь может их видеть
-
-    card_one = card(deck)
-    card_two = card(deck)
-    @player.add_card(card_one)
-    @player.add_card(card_two)
-
-    # Выдать 2 случайные карты диллеру
-    card_one = card(deck)
-    card_two = card(deck)
-    @dealer.add_card(card_one)
-    @dealer.add_card(card_two)
-
-    # Пользователь их не видит
-    puts 'Dealer get two cards'
-
-    # Показывать пользователю сумму своих очков
-    puts "You score: #{@player.score}"
-    puts "Dealer score: #{@dealer.score}"
-
-    # После раздачи делается ставка в банк 10$
-    # от игрока и диллера
-    bank = 0
-    @player.parlay
-    @dealer.parlay
-    bank = bank + 20
-
-    puts "#{player.cash}: #{dealer.cash}"
+    player.parlay
+    dealer.parlay
+    @bank += 20
 
     loop do
-      puts "You cards: #{@player.cards}"
-      # Ход игрока
-      # Спросить у пользователя:
+      puts 'Player cards:'
+      player.cards
+      puts ''
+      puts "You score: #{player.score}"
 
-      # Пропустить
-      # Добавить карту
-      # Открыть карты
       puts 'Select an action:'
       puts '1. Skip'
       puts '2. Get card'
@@ -64,22 +35,23 @@ class Game
       case input
       when 1
         player.skipped
+        player.parlay
+        @bank += 10
       when 2
-        player.add_card(card(deck))
+        new_card = card(deck)
+        player.add_card(new_card)
       when 3
         break
       end
 
-      # Ходит диллер
-      # На основании карт принять решение что выбрать из ходов
       if dealer.score < 17
         dealer.add_card(card(deck))
       else
         dealer.skipped
+        dealer.parlay
+        @bank += 10
       end
 
-      # Игра заканчивается при условии 3х карт у игроков
-      # Или если выбран ход - Открыть карты
       break if end_game?(player, dealer)
     end
     puts "Dealer score: #{dealer.score}, you: #{player.score}"
@@ -87,22 +59,32 @@ class Game
     end_game
   end
 
-  # Если игра кончилась, вывести резульат
-  # Кол-во очков пользователя и диллера
-  # Написать кто выйграл
-
-  # Спрашиваем хочет ли еще раз сыграть иначе завершаем цикл
+  private
 
   def end_game?(player, dealer)
     player.hands.size && dealer.hands.size > 3
   end
 
   def end_game
-    if dealer.score > 21 || player.score == 21
-      puts 'You win!'
+    if dealer.score > 21 || player.score == 21 || player.score > dealer.score
+      winner player
+      return_card player
+      return_card dealer
     elsif player.score < dealer.score || player.score > 21
-      puts 'Delader win!'
+      winner dealer
+      return_card player
+      return_card dealer
     end
+  end
+
+  def winner(player)
+    puts "#{player.name} win!"
+    player.cash = player.cash + bank
+    puts "#{player.name} cash: #{player.cash}"
+  end
+
+  def return_card(player)
+    (@deck << player.hands).flatten
   end
 
   def build_deck
@@ -119,7 +101,11 @@ class Game
     card = deck.sample
     deck.delete card
   end
-end
 
-game = Game.new
-game.run
+  def launching(player)
+    card_one = card(deck)
+    card_two = card(deck)
+    player.add_card(card_one)
+    player.add_card(card_two)
+  end
+end

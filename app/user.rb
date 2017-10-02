@@ -1,9 +1,9 @@
 class User
-  attr_reader :name, :score, :cash, :hands, :type
+  attr_reader :name, :cash, :hands, :type
+  attr_writer :score, :cash
 
   def initialize(name, type)
     @name = name
-    @score = 0
     @cash = 100
     @hands = []
     @rate = 0
@@ -11,6 +11,8 @@ class User
   end
 
   def add_card(card)
+    puts "#{name} get card." if type == :dealer
+    puts "#{name} get card: #{card}" if type == :player
     @hands << card
   end
 
@@ -19,7 +21,7 @@ class User
   end
 
   def cards
-    hands.each { |card| puts card.to_s }
+    hands.each { |card| print "#{card} " }
   end
 
   def parlay
